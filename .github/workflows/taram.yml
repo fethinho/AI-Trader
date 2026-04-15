@@ -31,27 +31,33 @@ jobs:
           pip install jupyter nbconvert yfinance pandas pandas-ta
 
       - name: Taramayi calistir ve ciktiyi kaydet
+        id: tarama
+        continue-on-error: true
         shell: bash
         run: |
-          set +e
           python taram.py > tarama_log.txt 2>&1
-          TARAMA_EXIT=$?
-          echo "TARAMA_EXIT=$TARAMA_EXIT" >> "$GITHUB_ENV"
-          exit 0
+          echo "TARAMA_EXIT=$?" >> "$GITHUB_ENV"
+
+      - name: Log yoksa olustur
+        if: always()
+        shell: bash
+        run: |
+          if [ ! -f tarama_log.txt ]; then
+            echo "tarama_log.txt olusmadi" > tarama_log.txt
+          fi
 
       - name: Telegram mesaji hazirla
+        if: always()
         shell: bash
         run: |
           {
-            echo "*Gunluk tarama tamamlandi*"
-            echo "Repo: \`${{ github.repository }}\`"
-            echo "Run: \`${{ github.run_number }}\`"
-            echo "Python exit code: \`${TARAMA_EXIT}\`"
-            echo
-            echo "*Log son 40 satir:*"
-            echo '```text'
+            echo "Gunluk tarama tamamlandi"
+            echo "Repo: ${{ github.repository }}"
+            echo "Run: ${{ github.run_number }}"
+            echo "Python exit code: ${TARAMA_EXIT}"
+            echo ""
+            echo "Log son 40 satir:"
             tail -n 40 tarama_log.txt
-            echo '```'
           } > telegram_message.txt
 
       - name: Telegram'a mesaj gonder
@@ -60,6 +66,5 @@ jobs:
         with:
           to: ${{ secrets.TELEGRAM_CHAT_ID }}
           token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          format: markdown
           message_file: telegram_message.txt
           document: tarama_log.txt
