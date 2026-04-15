@@ -16,39 +16,45 @@ jobs:
       - name: Kodu cek
         uses: actions/checkout@v4
 
-      - name: Repo dosyalarini listele
-        shell: bash
-        run: |
-          pwd
-          ls -la
-          find . -maxdepth 2 -type f | sort
-
       - name: Python kur
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: Gereksinimleri yukle
+      - name: Taramayi calistir ve log tut
+        id: tarama
+        continue-on-error: true
         shell: bash
         run: |
+          touch tarama_log.txt
+          exec > >(tee -a tarama_log.txt) 2>&1
+
+          echo "=== BASLADI ==="
+          echo "pwd:"
+          pwd
+          echo "repo dosyalari:"
+          find . -maxdepth 2 -type f | sort
+
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then
             pip install -r requirements.txt
           fi
           pip install nbconvert nbformat ipykernel jupyter_client jupyter_core yfinance pandas pandas-ta
 
-      - name: Notebook calistir ve log kaydet
-        continue-on-error: true
-        shell: bash
-        run: |
-          python -m nbconvert --to notebook --execute "sarma.ipynb" --output "sarma-ran.ipynb" > tarama_log.txt 2>&1
+          echo "=== NOTEBOOK CALISIYOR ==="
+          python -m nbconvert --to notebook --execute "sarma.ipynb" --output "sarma-ran.ipynb"
+
           EXIT_CODE=$?
           echo "TARAMA_EXIT=$EXIT_CODE" >> "$GITHUB_ENV"
+          echo "=== BITTI, EXIT_CODE=$EXIT_CODE ==="
 
-      - name: Log yoksa olustur
+      - name: Exit code yoksa varsayilan ata
         if: always()
         shell: bash
         run: |
+          if [ -z "${TARAMA_EXIT}" ]; then
+            echo "TARAMA_EXIT=999" >> "$GITHUB_ENV"
+          fi
           if [ ! -f tarama_log.txt ]; then
             echo "tarama_log.txt olusmadi" > tarama_log.txt
           fi
