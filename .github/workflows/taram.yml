@@ -28,13 +28,7 @@ jobs:
         run: |
           touch tarama_log.txt
           exec > >(tee -a tarama_log.txt) 2>&1
-
           echo "=== BASLADI ==="
-          echo "pwd:"
-          pwd
-          echo "repo dosyalari:"
-          find . -maxdepth 2 -type f | sort
-
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then
             pip install -r requirements.txt
@@ -42,7 +36,6 @@ jobs:
           pip install nbconvert nbformat ipykernel jupyter_client jupyter_core yfinance pandas
           echo "=== NOTEBOOK CALISIYOR ==="
           python -m nbconvert --to notebook --execute "sarma.ipynb" --output "sarma-ran.ipynb"
-
           EXIT_CODE=$?
           echo "TARAMA_EXIT=$EXIT_CODE" >> "$GITHUB_ENV"
           echo "=== BITTI, EXIT_CODE=$EXIT_CODE ==="
@@ -62,15 +55,9 @@ jobs:
         if: always()
         shell: bash
         run: |
-          {
-            echo "Gunluk tarama tamamlandi"
-            echo "Repo: ${{ github.repository }}"
-            echo "Run: ${{ github.run_number }}"
-            echo "Python exit code: ${TARAMA_EXIT}"
-            echo ""
-            echo "Log son 40 satir:"
-            tail -n 40 tarama_log.txt
-          } > telegram_message.txt
+          LOG_TAIL=$(tail -n 10 tarama_log.txt)
+          MSG="Gunluk BIST Tarama\nRepo: ${{ github.repository }}\nRun: #${{ github.run_number }}\nExit: ${TARAMA_EXIT}\n\nSon Loglar:\n${LOG_TAIL}"
+          echo "$MSG" | head -c 4000 > telegram_message.txt
 
       - name: Telegram'a mesaj gonder
         if: always()
