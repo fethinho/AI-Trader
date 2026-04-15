@@ -1,8 +1,11 @@
 name: Sabah tarama ve Telegram
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 on:
   schedule:
-    - cron: '56 6 * * 1-5'
+    - cron: '56 6 * * 1-5'   # Hafta ici her gun 09:56 TR
   workflow_dispatch:
 
 jobs:
@@ -19,16 +22,30 @@ jobs:
           python-version: '3.11'
 
       - name: Gereksinimleri yukle
+        shell: bash
         run: |
+          python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then
-            python -m pip install --upgrade pip
             pip install -r requirements.txt
           fi
+          pip install jupyter nbconvert yfinance pandas pandas-ta
 
       - name: Taramayi calistir ve ciktiyi kaydet
+        id: tarama
+        shell: bash
         run: |
-          set -o pipefail
-          python taram.py | tee tarama_log.txt
+          set +e
+          python taram.py 2>&1 | tee tarama_log.txt
+          TARAMA_EXIT=${PIPESTATUS[0]}
+          echo "TARAMA_EXIT=$TARAMA_EXIT" >> "$GITHUB_ENV"
+
+          {
+            echo "LOG_TAIL<<EOF"
+            tail -n 40 tarama_log.txt
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+          exit 0
 
       - name: Telegram'a mesaj gonder
         if: always()
@@ -36,9 +53,15 @@ jobs:
         with:
           to: ${{ secrets.TELEGRAM_CHAT_ID }}
           token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          format: markdown
           message: |
-            Gunluk tarama calisti
-            Repo: ${{ github.repository }}
-            Run: ${{ github.run_number }}
-            Status: ${{ job.status }}
+            *Gunluk tarama tamamlandi*
+            Repo: `${{ github.repository }}`
+            Run: `${{ github.run_number }}`
+            Python exit code: `${{ env.TARAMA_EXIT }}`
+
+            *Log son 40 satir:*
+            ```text
+            ${{ steps.tarama.outputs.LOG_TAIL }}
+            ```
           document: tarama_log.txt
