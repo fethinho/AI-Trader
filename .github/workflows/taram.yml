@@ -16,12 +16,20 @@ jobs:
       - name: Kodu cek
         uses: actions/checkout@v4
 
+      - name: Repo dosyalarini listele
+        shell: bash
+        run: |
+          pwd
+          ls -la
+          find . -maxdepth 2 -type f | sort
+
       - name: Python kur
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
       - name: Gereksinimleri yukle
+        continue-on-error: true
         shell: bash
         run: |
           python -m pip install --upgrade pip
@@ -30,12 +38,12 @@ jobs:
           fi
           pip install jupyter nbconvert yfinance pandas pandas-ta
 
-      - name: Taramayi calistir ve ciktiyi kaydet
+      - name: Notebook calistir ve log kaydet
         id: tarama
         continue-on-error: true
         shell: bash
         run: |
-          python taram.py > tarama_log.txt 2>&1
+          jupyter nbconvert --to notebook --execute "sarma.ipynb" --output "sarma-ran.ipynb" > tarama_log.txt 2>&1
           echo "TARAMA_EXIT=$?" >> "$GITHUB_ENV"
 
       - name: Log yoksa olustur
