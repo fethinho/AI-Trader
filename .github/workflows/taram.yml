@@ -39,8 +39,7 @@ jobs:
           if [ -f requirements.txt ]; then
             pip install -r requirements.txt
           fi
-          pip install nbconvert nbformat ipykernel jupyter_client jupyter_core yfinance pandas pandas-ta
-
+          pip install nbconvert nbformat ipykernel jupyter_client jupyter_core yfinance pandas
           echo "=== NOTEBOOK CALISIYOR ==="
           python -m nbconvert --to notebook --execute "sarma.ipynb" --output "sarma-ran.ipynb"
 
