@@ -5,7 +5,7 @@ env:
 
 on:
   schedule:
-    - cron: '56 6 * * 1-5'   # Hafta ici her gun 09:56 TR
+    - cron: '56 6 * * 1-5'
   workflow_dispatch:
 
 jobs:
@@ -31,21 +31,28 @@ jobs:
           pip install jupyter nbconvert yfinance pandas pandas-ta
 
       - name: Taramayi calistir ve ciktiyi kaydet
-        id: tarama
         shell: bash
         run: |
           set +e
-          python taram.py 2>&1 | tee tarama_log.txt
-          TARAMA_EXIT=${PIPESTATUS[0]}
+          python taram.py > tarama_log.txt 2>&1
+          TARAMA_EXIT=$?
           echo "TARAMA_EXIT=$TARAMA_EXIT" >> "$GITHUB_ENV"
-
-          {
-            echo "LOG_TAIL<<EOF"
-            tail -n 40 tarama_log.txt
-            echo "EOF"
-          } >> "$GITHUB_OUTPUT"
-
           exit 0
+
+      - name: Telegram mesaji hazirla
+        shell: bash
+        run: |
+          {
+            echo "*Gunluk tarama tamamlandi*"
+            echo "Repo: \`${{ github.repository }}\`"
+            echo "Run: \`${{ github.run_number }}\`"
+            echo "Python exit code: \`${TARAMA_EXIT}\`"
+            echo
+            echo "*Log son 40 satir:*"
+            echo '```text'
+            tail -n 40 tarama_log.txt
+            echo '```'
+          } > telegram_message.txt
 
       - name: Telegram'a mesaj gonder
         if: always()
@@ -54,14 +61,5 @@ jobs:
           to: ${{ secrets.TELEGRAM_CHAT_ID }}
           token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           format: markdown
-          message: |
-            *Gunluk tarama tamamlandi*
-            Repo: `${{ github.repository }}`
-            Run: `${{ github.run_number }}`
-            Python exit code: `${{ env.TARAMA_EXIT }}`
-
-            *Log son 40 satir:*
-            ```text
-            ${{ steps.tarama.outputs.LOG_TAIL }}
-            ```
+          message_file: telegram_message.txt
           document: tarama_log.txt
