@@ -1,0 +1,44 @@
+name: Sabah tarama ve Telegram
+
+on:
+  schedule:
+    - cron: '56 6 * * 1-5'
+  workflow_dispatch:
+
+jobs:
+  run-scan-and-notify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Kodu cek
+        uses: actions/checkout@v4
+
+      - name: Python kur
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Gereksinimleri yukle
+        run: |
+          if [ -f requirements.txt ]; then
+            python -m pip install --upgrade pip
+            pip install -r requirements.txt
+          fi
+
+      - name: Taramayi calistir ve ciktiyi kaydet
+        run: |
+          set -o pipefail
+          python taram.py | tee tarama_log.txt
+
+      - name: Telegram'a mesaj gonder
+        if: always()
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_CHAT_ID }}
+          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          message: |
+            Gunluk tarama calisti
+            Repo: ${{ github.repository }}
+            Run: ${{ github.run_number }}
+            Status: ${{ job.status }}
+          document: tarama_log.txt
