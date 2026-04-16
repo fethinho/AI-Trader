@@ -29,13 +29,13 @@ jobs:
           touch tarama_log.txt
           exec > >(tee -a tarama_log.txt) 2>&1
           echo "=== BASLADI ==="
-          python -m pip install --upgrade pip
+          python -m pip install --upgrade pip -q
           if [ -f requirements.txt ]; then
-            pip install -r requirements.txt
+            pip install -r requirements.txt -q
           fi
-          pip install nbconvert nbformat ipykernel jupyter_client jupyter_core yfinance pandas
+          pip install nbconvert nbformat ipykernel jupyter_client jupyter_core yfinance pandas -q
           echo "=== NOTEBOOK CALISIYOR ==="
-          python -m nbconvert --to notebook --execute "sarma.ipynb" --output "sarma-ran.ipynb"
+          python -m nbconvert --to notebook --execute "sarma.ipynb" --output "sarma-ran.ipynb" --log-level=ERROR
           EXIT_CODE=$?
           echo "TARAMA_EXIT=$EXIT_CODE" >> "$GITHUB_ENV"
           echo "=== BITTI, EXIT_CODE=$EXIT_CODE ==="
@@ -55,7 +55,7 @@ jobs:
         if: always()
         shell: bash
         run: |
-          LOG_TAIL=$(tail -n 10 tarama_log.txt)
+          LOG_TAIL=$(tail -n 20 tarama_log.txt)
           MSG="Gunluk BIST Tarama\nRepo: ${{ github.repository }}\nRun: #${{ github.run_number }}\nExit: ${TARAMA_EXIT}\n\nSon Loglar:\n${LOG_TAIL}"
           echo "$MSG" | head -c 4000 > telegram_message.txt
 
