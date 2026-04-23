@@ -1,0 +1,44 @@
+name: FETHİNHO AI — Kripto Tarayıcı
+on:
+  schedule:
+    - cron: "0 * * * *"
+    - cron: "0 */4 * * *"
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+    inputs:
+      timeframe:
+        description: '1h / 4h / 1d'
+        default: '1h'
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r requirements.txt
+      - name: Saatlik
+        if: github.event.schedule == '0 * * * *'
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python scanner.py 1h
+      - name: 4 Saatlik
+        if: github.event.schedule == '0 */4 * * *'
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python scanner.py 4h
+      - name: Gunluk
+        if: github.event.schedule == '0 3 * * *'
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python scanner.py 1d
+      - name: Manuel
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python scanner.py ${{ github.event.inputs.timeframe }}
